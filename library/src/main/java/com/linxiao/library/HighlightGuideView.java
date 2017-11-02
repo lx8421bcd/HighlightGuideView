@@ -22,6 +22,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.util.ArrayMap;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -44,6 +45,7 @@ import java.util.Map;
  * Created by linxiao on 2017/8/3.
  */
 public class HighlightGuideView extends FrameLayout {
+    private static final String TAG = HighlightGuideView.class.getSimpleName();
     /**
      * 方形高亮
      * */
@@ -108,7 +110,7 @@ public class HighlightGuideView extends FrameLayout {
     private HighlightGuideView(@NonNull Context context) {
         super(context);
         if (context instanceof Activity) {
-            mRootView = (ViewGroup) ((Activity)context).findViewById(Window.ID_ANDROID_CONTENT);
+            mRootView = ((Activity)context).findViewById(Window.ID_ANDROID_CONTENT);
         }
         setWillNotDraw(false);
         mHighlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG); // 开启抗锯齿和抗抖动
@@ -432,7 +434,14 @@ public class HighlightGuideView extends FrameLayout {
             return;
         }
         for (int targetId : mGuideViewsMap.keySet()) {
+            if (targetId == NO_TARGET_GUIDE_ID) {
+                continue;
+            }
             View targetView = mTargetViewMap.get(targetId);
+            if (targetView == null) {
+                Log.e(TAG, "onDraw: " + "targetView is null");
+                continue;
+            }
             int padding = 0;
             if (mHighlightPaddingMap.containsKey(targetId)) {
                 padding = mHighlightPaddingMap.get(targetId);
@@ -452,6 +461,10 @@ public class HighlightGuideView extends FrameLayout {
         int top = targetRect.top;
         int right = targetRect.right;
         int bottom = targetRect.bottom;
+        Log.d(TAG, "drawHighlightArea: left = " + left +
+            "right = " + right +
+            "top = " + top +
+            "bottom = " + bottom);
     
         RectF highlightRect;
         switch (mHighlightStyle) {
@@ -474,34 +487,18 @@ public class HighlightGuideView extends FrameLayout {
      * 获取目标控件在Activity根布局中的坐标矩阵
      * */
     private Rect getTargetViewRect(View targetView) {
-        View parent = mRootView.getChildAt(0);
-        View decorView = null;
-        Context context = targetView.getContext();
-        if (context instanceof Activity) {
-            decorView = ((Activity) context).getWindow().getDecorView();
-        }
         Rect result = new Rect();
-        Rect tmpRect = new Rect();
-        
-        View tmp = targetView;
-        
-        if (targetView == parent) {
-            targetView.getHitRect(result);
-            return result;
-        }
-        while (tmp != decorView && tmp != parent) {
-            tmp.getHitRect(tmpRect);
-            if (!tmp.getClass().toString().equals("NoSaveStateFrameLayout")) {
-                result.left += tmpRect.left;
-                result.top += tmpRect.top;
-            }
-            tmp = (View) tmp.getParent();
-        }
+        int xy[] = new int[2];
+        targetView.getLocationOnScreen(xy);
+        result.left = xy[0];
+        /*由于y值取得是在屏幕上的位置，因此需要计算屏幕与根布局的高度差,以此确定正确的目标控件坐标*/
+        int delta = screenHeight - mRootView.getHeight();
+        result.top = xy[1] - delta;
         result.right = result.left + targetView.getMeasuredWidth();
         result.bottom = result.top + targetView.getMeasuredHeight();
         return result;
     }
-
+    
     /**
      * 引导页队列
      * <p>使用此类构建按添加先后顺序依次显示的引导页队列</p>
@@ -534,10 +531,31 @@ public class HighlightGuideView extends FrameLayout {
             }
         }
 
+        /**
+         * 使用入列的方式，添加页面后将会直接启动队列开始显示
+         * */
+        public void enqueue(HighlightGuideView guideView) {
+            if (guideView == null) {
+                return;
+            }
+            guideView.addOnDismissListener(new OnDismissListener() {
+                @Override
+                public void onDismiss() {
+                    showNext();
+                }
+            });
+            mGuideViewList.add(guideView);
+            show();
+        }
+
         public void show() {
             if (mGuideViewList.size() > 0) {
                 mGuideViewList.get(0).show();
             }
+        }
+
+        public int size() {
+            return mGuideViewList.size();
         }
 
         /**

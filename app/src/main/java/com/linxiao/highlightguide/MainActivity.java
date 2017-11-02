@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
                 showGuideQueue();
             }
         });
-        
+        showSingleGuide();
     }
     
     private void showSingleGuide() {
@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
         tvDesc1.setText("guide 1");
         tvDesc1.setTextSize(16);
         
-        queue.add(
+        queue.enqueue(
             HighlightGuideView.newInstance(this)
             .setHighlightStyle(HighlightGuideView.STYLE_CIRCLE)
             .addTargetView(tvHello)
@@ -82,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
         tvDesc2.setText("guide 2");
         tvDesc2.setTextSize(16);
     
-        queue.add(
+        queue.enqueue(
             HighlightGuideView.newInstance(this)
             .setHighlightStyle(HighlightGuideView.STYLE_RECT)
             .addTargetView(btnShowSingle)
@@ -93,14 +93,12 @@ public class MainActivity extends AppCompatActivity {
         tvDesc3.setTextColor(ContextCompat.getColor(this, android.R.color.white));
         tvDesc3.setText("guide 3");
         tvDesc3.setTextSize(16);
-        queue.add(
+        queue.enqueue(
             HighlightGuideView.newInstance(this)
             .setHighlightStyle(HighlightGuideView.STYLE_OVAL)
             .addTargetView(btnShowQueue)
             .addGuideView(btnShowQueue, tvDesc3, dp2px(50), dp2px(60))
         );
-        
-        queue.show();
     }
     
     /**
